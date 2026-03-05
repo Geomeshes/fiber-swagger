@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/swaggo/swag/v2"
 )
@@ -259,9 +259,11 @@ func TestWrapHandler(t *testing.T) {
 
 	w5 := performRequest(http.MethodGet, "/swagger-ui-bundle.js", router)
 	assert.Equal(t, http.StatusOK, w5.StatusCode)
-	assert.Equal(t, w5.Header.Get("Content-Type"), fiber.MIMEApplicationJavaScript)
+	assert.Equal(t, w5.Header.Get("Content-Type"), fiber.MIMETextJavaScriptCharsetUTF8)
 
-	assert.Equal(t, http.StatusNotFound, performRequest(http.MethodGet, "/notfound", router).StatusCode)
+	assert.Equal(
+		t, http.StatusNotFound, performRequest(http.MethodGet, "/notfound", router).StatusCode,
+	)
 
 	assert.Equal(t, 301, performRequest(http.MethodGet, "/swagger/", router).StatusCode)
 }
@@ -283,11 +285,10 @@ func TestURL(t *testing.T) {
 }
 
 func TestDeepLinking(t *testing.T) {
-	expected := true
 	cfg := Config{}
-	configFunc := DeepLinking(expected)
+	configFunc := DeepLinking(true)
 	configFunc(&cfg)
-	assert.Equal(t, expected, cfg.DeepLinking)
+	assert.Equal(t, true, cfg.DeepLinking)
 }
 
 func TestDocExpansion(t *testing.T) {
@@ -307,11 +308,10 @@ func TestDomID(t *testing.T) {
 }
 
 func TestPersistAuthorization(t *testing.T) {
-	expected := true
 	cfg := Config{}
-	configFunc := PersistAuthorization(expected)
+	configFunc := PersistAuthorization(true)
 	configFunc(&cfg)
-	assert.Equal(t, expected, cfg.PersistAuthorization)
+	assert.Equal(t, true, cfg.PersistAuthorization)
 }
 
 func TestInstanceName(t *testing.T) {

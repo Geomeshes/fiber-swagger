@@ -6,15 +6,15 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/adaptor"
 	swaggerFiles "github.com/swaggo/files/v2"
 	"github.com/swaggo/swag/v2"
-	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
 
 // Config stores fiberSwagger configuration variables.
 type Config struct {
-	// The url pointing to API definition (normally swagger.json or swagger.yaml). Default is `mockedSwag.json`.
+	// The url pointing to the API definition (normally swagger.json or swagger.yaml). The default is `mockedSwag.json`.
 	URL                  string
 	InstanceName         string
 	DocExpansion         string
@@ -87,12 +87,12 @@ func FiberWrapHandler(configFns ...func(c *Config)) fiber.Handler {
 		configFn(&config)
 	}
 
-	// create a template with name
+	// create a template with a name
 	index, _ := template.New("swagger_index.html").Parse(indexTemplate)
 
 	var re = regexp.MustCompile(`^(.*/)([^?].*)?[?|.]*$`)
 
-	return func(ctx *fiber.Ctx) error {
+	return func(ctx fiber.Ctx) error {
 		matches := re.FindStringSubmatch(string(ctx.Request().URI().Path()))
 		path := matches[2]
 		prefix := matches[1]
@@ -100,7 +100,11 @@ func FiberWrapHandler(configFns ...func(c *Config)) fiber.Handler {
 		fileExt := filepath.Ext(path)
 		switch path {
 		case "":
-			return ctx.Redirect(filepath.Join(prefix, "index.html"), fiber.StatusMovedPermanently)
+			return ctx.Redirect().Status(fiber.StatusMovedPermanently).To(
+				filepath.Join(
+					prefix, "index.html",
+				),
+			)
 
 		case "index.html":
 			ctx.Type(fileExt[0:], "utf-8")
@@ -117,7 +121,13 @@ func FiberWrapHandler(configFns ...func(c *Config)) fiber.Handler {
 			ctx.Type(fileExt[0:], "utf-8")
 			return ctx.SendString(doc)
 		default:
-			fasthttpadaptor.NewFastHTTPHandler(http.StripPrefix(prefix, http.FileServer(http.FS(fs))))(ctx.Context())
+			err := adaptor.HTTPHandler(
+				http.StripPrefix(prefix, http.FileServer(http.FS(fs))),
+			)(ctx)
+
+			if err != nil {
+				return err
+			}
 
 			switch fileExt {
 			case ".css":
